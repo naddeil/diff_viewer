@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Diff Viewer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; font-family: system-ui; }
+#editor { height: 100vh; width: 100vw; }
+#loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #1e1e1e; color: #ccc; font-size: 1.2rem; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="loading">Waiting for data... (use postMessage or URL params)</div>
+<div id="editor"></div>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs/loader.js"></script>
+<script>
+let editor;
+
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs' } });
+require(['vs/editor/editor.main'], function () {
+  // Try URL hash params first (base64 encoded, for smaller payloads)
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const pre = params.get('pre');
+  const post = params.get('post');
+
+  if (pre && post) {
+    try {
+      showDiff(decode(pre), decode(post));
+      return;
+    } catch (e) { /* fall through to postMessage */ }
+  }
+
+  // Listen for postMessage (for large payloads)
+  window.addEventListener('message', function handler(event) {
+    const { pre, post } = event.data || {};
+    if (pre !== undefined && post !== undefined) {
+      window.removeEventListener('message', handler);
+      showDiff(format(pre), format(post));
+    }
+  });
+});
+
+function decode(str) {
+  try { return JSON.stringify(JSON.parse(atob(str)), null, 2); }
+  catch { return atob(str); }
+}
+
+function format(obj) {
+  if (typeof obj === 'string') {
+    try { return JSON.stringify(JSON.parse(obj), null, 2); }
+    catch { return obj; }
+  }
+  return JSON.stringify(obj, null, 2);
+}
+
+function showDiff(original, modified) {
+  document.getElementById('loading').style.display = 'none';
+  editor = monaco.editor.createDiffEditor(document.getElementById('editor'), {
+    theme: 'vs-dark',
+    automaticLayout: true,
+    readOnly: true,
+    renderSideBySide: true,
+    originalEditable: false
+  });
+  editor.setModel({
+    original: monaco.editor.createModel(original, 'json'),
+    modified: monaco.editor.createModel(modified, 'json')
+  });
+}
+</script>
+</body>
+</html>

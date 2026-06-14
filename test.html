@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Test Diff Viewer</title>
+</head>
+<body>
+<h2>Test Diff Viewer</h2>
+<button id="btn">Apri Diff</button>
+<script>
+document.getElementById('btn').addEventListener('click', () => {
+  const w = window.open('http://localhost:8080');
+  const interval = setInterval(() => {
+    if (w && !w.closed) {
+      w.postMessage({
+        pre: { name: "Mario", age: 30, items: [1, 2, 3], address: { city: "Roma", zip: "00100" } },
+        post: { name: "Mario", age: 31, items: [1, 2, 3, 4], email: "mario@test.com", address: { city: "Milano", zip: "20100" } }
+      }, '*');
+      clearInterval(interval);
+    }
+  }, 500);
+});
+</script>
+</body>
+</html>
